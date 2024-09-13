@@ -1,0 +1,66 @@
+[build-system]
+requires      = ["hatchling"]
+build-backend = "hatchling.build"
+
+
+[project]
+name = "embeddings"
+dynamic = ["version"]
+authors = [{ name = "yoga", email = "ychsu@iii.org.tw" }]
+description = "A embeddings server lib."
+readme = "README.md"
+requires-python = ">=3.8"
+classifiers = ["Programming Language :: Python :: 3"]
+dependencies = [
+    "fastapi==0.111.1",
+    "uvicorn>=0.30.6",
+    "numpy==1.21.6",
+    "tomli-w>=1.0.0",
+    "tomli==2.0.1; python_version < '3.11'",
+]
+    [project.optional-dependencies]
+    all = [
+        "gensim==4.3.3",
+        "jieba==0.42.1",
+        "sentence-transformers==3.1.0",
+        "InstructorEmbedding==1.0.1",
+        "llama-cpp-python>=0.2.90",
+    ]
+    gensim = ["gensim==4.3.3", "jieba==0.42.1"]
+    sentence-transformers = ["sentence-transformers==3.1.0"]
+    instructor-embedding = ["InstructorEmbedding==1.0.1"]
+    llama-cpp = ["llama-cpp-python>=0.2.90"]
+
+
+[tool]
+    [tool.ruff]
+    target-version = "py310"
+    line-length    = 130
+    lint.ignore    = ["E402", "F841", "F401", "E203"]
+
+    [tool.isort]
+    profile = "ruff"
+
+    [tool.hatch.metadata]
+    allow-direct-references = true
+
+    [tool.hatch.version]
+    path = "embeddings/__init__.py"
+
+    [tool.coverage.run]
+    omit = ["*template*", "tests/*", "*__init__.py*"]
+
+    [tool.coverage.report]
+    precision = 2
+    fail_under = 80.0
+    show_missing = true
+    skip_covered = true
+    exclude_lines = [
+        "# pragma: no cover",
+        "@abc.abstractclassmethod",
+        "@abc.abstractmethod",
+        "pass",
+        "if __name__ == *",
+        "def __repr__",
+        "if TYPE_CHECKING",
+    ]
