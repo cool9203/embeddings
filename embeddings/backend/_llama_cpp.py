@@ -5,8 +5,10 @@ from __future__ import annotations
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Dict, List, Union
 
-import llama_cpp as _llama_cpp
 import numpy as np
+from huggingface_hub.errors import HFValidationError
+from huggingface_hub.utils._errors import RepositoryNotFoundError
+from llama_cpp import Llama
 
 from ._base import EmbeddingModel, EmbeddingResult, EmbeddingResults
 
@@ -14,28 +16,36 @@ from ._base import EmbeddingModel, EmbeddingResult, EmbeddingResults
 class llama_cpp(EmbeddingModel):
     def __init__(
         self,
-        model: _llama_cpp.Llama,
+        model: Llama,
         tokenizer=None,
     ) -> None:
         super().__init__(
             model=model,
-            tokenizer=None,
+            tokenizer=tokenizer,
         )
 
         if TYPE_CHECKING:
-            self.model: _llama_cpp.Llama
+            self.model: Llama
 
     @classmethod
     def from_pretrained(
         cls,
-        path: Union[str, Path],
+        model_name_or_path: Union[str, Path],
         tokenizer=None,
+        filename: str = None,
         **kwds: Dict[str, Any],
     ) -> llama_cpp:
-        if not Path(path).is_dir():
-            raise NotADirectoryError("Variable `path` not a folder.")
-        model = _llama_cpp.Llama(model_path=path, embedding=True)
-        return llama_cpp(model, None)
+        try:
+            model = Llama.from_pretrained(
+                repo_id=model_name_or_path,
+                filename=filename,
+                embedding=True,
+                **kwds,
+            )
+        except (HFValidationError, RepositoryNotFoundError) as e:
+            raise TypeError("Variable `model_name_or_path` not a folder, and not exist in huggingface.") from e
+
+        return llama_cpp(model, tokenizer)
 
     def encodes(
         self,
@@ -47,14 +57,16 @@ class llama_cpp(EmbeddingModel):
 
         results = list()
         _embeddings = self.model.create_embedding(sentences)
-        for _embedding in _embeddings.data:
+        used_tokens = _embeddings["usage"]["total_tokens"]
+        for embedding_data in _embeddings["data"]:
             results.append(
                 EmbeddingResult(
-                    vector=np.array(_embedding, dtype="float64"),
-                    used_tokens=0,
+                    vector=np.array(embedding_data["embedding"], dtype="float64"),
+                    used_tokens=used_tokens if used_tokens is not None else 0,
                 )
             )
-        return
+            used_tokens = None
+        return results
 
     def encode(
         self,
@@ -65,7 +77,4 @@ class llama_cpp(EmbeddingModel):
             raise TypeError(f"Variable 'sentence' type should be str, but got {type(sentence)}.")
 
         results = self.encodes([sentence], **kwds)
-        return EmbeddingResult(
-            vector=np.array(results[0], dtype="float32"),
-            used_tokens=sum([result.used_tokens for result in results]),
-        )
+        return results[0]
