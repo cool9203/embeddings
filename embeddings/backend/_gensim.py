@@ -9,7 +9,9 @@ from typing import TYPE_CHECKING, Any, Dict, List, Union
 import gensim as _gensim
 import jieba
 import numpy as np
-from huggingface_hub import snapshot_download, utils
+from huggingface_hub import snapshot_download
+from huggingface_hub.errors import HFValidationError
+from huggingface_hub.utils._errors import RepositoryNotFoundError
 
 from ._base import EmbeddingModel, EmbeddingResult, EmbeddingResults
 
@@ -40,21 +42,21 @@ class gensim(EmbeddingModel):
         tokenizer: jieba = None,
         **kwds: Dict[str, Any],
     ) -> gensim:
+        jieba_dict_path = kwds.pop("jieba_dict_path", None) if not tokenizer else None
         if not Path(model_name_or_path).is_dir():
             try:
-                model_name_or_path = snapshot_download(repo_id=model_name_or_path)
-            except utils._errors.RepositoryNotFoundError:
-                raise NotADirectoryError("Variable `model_name_or_path` not a folder, and not exist in huggingface.")
+                model_name_or_path = snapshot_download(repo_id=model_name_or_path, **kwds)
+            except (RepositoryNotFoundError, HFValidationError) as e:
+                raise TypeError("Variable `model_name_or_path` not a folder, and not exist in huggingface.") from e
 
         try:
             model = _gensim.models.KeyedVectors.load(str(Path(model_name_or_path, "model.kv")))
-        except Exception as e:
-            raise TypeError("model backend not is gensim")
+        except FileNotFoundError as e:
+            raise TypeError("model backend not is gensim") from e
 
-        jieba_dict_path = kwds.get("jieba_dict_path", None) if not tokenizer else None
         tokenizer = jieba if not tokenizer else tokenizer
 
-        if jieba_dict_path:
+        if jieba_dict_path and Path(jieba_dict_path).exists():  # pragma: no cover
             tokenizer.set_dictionary(jieba_dict_path)
         tokenizer.initialize()
         return gensim(model, tokenizer)
