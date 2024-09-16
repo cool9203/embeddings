@@ -4,7 +4,7 @@ import base64
 import logging
 from contextlib import asynccontextmanager
 from datetime import datetime
-from typing import Dict, List, Union
+from typing import Any, Dict, List, Union
 from urllib.parse import unquote_plus
 
 import numpy as np
@@ -12,7 +12,8 @@ from fastapi import Body, FastAPI, HTTPException, Path
 from typing_extensions import Annotated
 
 import embeddings._error as error
-from embeddings import backend, config
+from embeddings import backend as _backend
+from embeddings import config
 from embeddings._types import EmbeddingDataElement, EmbeddingResponse, EmbeddingUsageResult, Model, ModelListResponse
 from embeddings.backend._base import EmbeddingResult, EmbeddingResults
 
@@ -23,7 +24,7 @@ logger = logging.getLogger(__name__)
 
 
 # Same use model
-__model: Dict[str, Dict[str, Union[str, float, backend.base.EmbeddingModel]]] = dict()
+__model: Dict[str, Dict[str, Union[str, float, _backend.base.EmbeddingModel]]] = dict()
 
 
 @asynccontextmanager
@@ -31,14 +32,11 @@ async def lifespan(app: FastAPI):
     # Start event - load model
     for backend_name, model_info in config.config_nested_get("model").items():
         for model_name, model_setting in model_info.items():
-            model_fn: backend.base.EmbeddingModel = getattr(backend, backend_name)
-            __model[model_name] = {
-                "model": model_fn.from_pretrained(**model_setting),
-                "backend": backend_name,
-                "create_time": int(datetime.now().timestamp()),
-                "status": "loaded",
-            }
-            logger.info(f"Load '{model_name}' from '{backend_name}' success.")
+            await load_model(
+                model_name=model_name,
+                backend=backend_name,
+                parameters=model_setting,
+            )
     yield
     # Shutdown event
 
@@ -64,6 +62,23 @@ async def get_models():
         object="list",
         data=model_list,
     )
+
+
+@app.post("/load_model")
+async def load_model(
+    model_name: Annotated[str, Body()],
+    backend: Annotated[str, Body()],
+    parameters: Annotated[Dict[str, Any], Body()] = {},
+):
+    model_fn: _backend.base.EmbeddingModel = getattr(_backend, backend)
+    __model[model_name] = {
+        "model": model_fn.from_pretrained(**parameters),
+        "backend": backend,
+        "create_time": int(datetime.now().timestamp()),
+        "status": "loaded",
+    }
+    logger.info(f"Load '{model_name}' from '{backend}' success.")
+    return {"status": True}
 
 
 @app.post(
