@@ -26,6 +26,7 @@ dependencies = [
         "InstructorEmbedding==1.0.1",
         "llama-cpp-python>=0.2.90",
     ]
+    dev = ["coverage", "pre-commit"]
     gensim = ["gensim==4.3.3", "jieba==0.42.1"]
     sentence-transformers = ["sentence-transformers==3.1.0"]
     instructor-embedding = ["InstructorEmbedding==1.0.1"]
