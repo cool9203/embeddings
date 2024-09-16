@@ -1,10 +1,11 @@
 # coding: utf-8
 
 import logging
-from pathlib import Path
-from typing import TYPE_CHECKING, Any, Dict, List, Union
+from typing import TYPE_CHECKING, Any, Dict, List
 
 import numpy as np
+from huggingface_hub.errors import HFValidationError
+from huggingface_hub.utils._errors import RepositoryNotFoundError
 from sentence_transformers import SentenceTransformer
 
 from ._base import EmbeddingModel, EmbeddingResult, EmbeddingResults
@@ -18,9 +19,11 @@ class sentence_transformer(EmbeddingModel):
     def __init__(
         self,
         model: Any,
+        tokenizer=None,
     ) -> None:
         super().__init__(
             model=model,
+            tokenizer=tokenizer,
         )
 
         if TYPE_CHECKING:
@@ -30,14 +33,22 @@ class sentence_transformer(EmbeddingModel):
     def from_pretrained(
         cls,
         model_name_or_path: str,
+        tokenizer=None,
         **kwds: Dict[str, Any],
     ) -> EmbeddingModel:
-        model = SentenceTransformer(
-            model_name_or_path=model_name_or_path,
-            **kwds,
-        )
+        try:
+            if not model_name_or_path:
+                raise ValueError
+            model = SentenceTransformer(
+                model_name_or_path=model_name_or_path,
+                **kwds,
+            )
+        except (HFValidationError, RepositoryNotFoundError, OSError, ValueError) as e:
+            raise TypeError("Variable `model_name_or_path` not a folder, and not exist in huggingface.") from e
+
         return sentence_transformer(
             model=model,
+            tokenizer=tokenizer,
         )
 
     def encodes(
@@ -70,6 +81,13 @@ class sentence_transformer(EmbeddingModel):
             raise TypeError(f"Variable 'sentence' type should be str, but got {type(sentence)}.")
 
         return EmbeddingResult(
-            vector=np.array(self.model.encode(sentences=sentence, normalize_embeddings=normalize), dtype="float64"),
+            vector=np.array(
+                self.model.encode(
+                    sentences=sentence,
+                    normalize_embeddings=normalize,
+                    **kwds,
+                ),
+                dtype="float64",
+            ),
             used_tokens=len(sentence),
         )
