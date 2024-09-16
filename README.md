@@ -44,6 +44,9 @@ http://localhost:8000/docs
 
 ## unit test
 
+> [!IMPORTANT]
+> 需要先啟動伺服器, 連帶測試 openai package 可以正常使用
+
 ```bash
 pip install tox
 tox
@@ -67,19 +70,17 @@ coverage report -m
 ----------Start unittest----------
 ..
 ----------------------------------------------------------------------
-Ran 3 tests in 3.915s
+Ran 5 tests in 25.680s
 
 OK
 ----------End unittest----------
 ----------Code coverage----------
-Name                                        Stmts   Miss   Cover   Missing
---------------------------------------------------------------------------
-embeddings\model\_sentence_transformer.py      22     11  50.00%   20, 36, 43-49, 56-59
---------------------------------------------------------------------------
-TOTAL                                         108     11  89.81%
-
-2 files skipped due to complete coverage.
-Coverage failure: total of 89.81 is less than fail-under=90.00
+Name                                          Stmts   Miss   Cover   Missing
+----------------------------------------------------------------------------
+embeddings/backend/_instructor_embedding.py      28     13  53.57%   27, 40-43, 54-67, 76-80
+embeddings/config/_config.py                     59     36  38.98%   24-35, 49-73, 83, 86-88
+----------------------------------------------------------------------------
+TOTAL                                           249     49  80.32%
 ```
 
 ## Reference
