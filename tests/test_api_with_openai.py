@@ -25,7 +25,7 @@ class Test(unittest.TestCase):
                 timeout=30,
                 input="test content",
             )
-            all_embeddings_dimensions["word2vec"] = len(response.get("data")[0].get("embedding"))
+            all_embeddings_dimensions["word2vec"] = len(response.model_dump().get("data")[0].get("embedding"))
 
         elif openai_version[0] == 0:
             response = openai.Embedding.create(
