@@ -1,14 +1,21 @@
 # coding: utf-8
 
 import logging
+from importlib.metadata import version
 from typing import TYPE_CHECKING, Any, Dict, List
 
 import numpy as np
 from huggingface_hub.errors import HFValidationError
-from huggingface_hub.utils._errors import RepositoryNotFoundError
 from sentence_transformers import SentenceTransformer
 
 from ._base import EmbeddingModel, EmbeddingResult, EmbeddingResults
+
+huggingface_hub_version = version("huggingface_hub")
+huggingface_hub_version = [int(v) for v in huggingface_hub_version.split(".")]
+if huggingface_hub_version[1] <= 24 and huggingface_hub_version[2] <= 7:
+    from huggingface_hub.utils._errors import RepositoryNotFoundError
+else:
+    from huggingface_hub.errors import RepositoryNotFoundError
 
 logger = logging.getLogger(
     __name__,

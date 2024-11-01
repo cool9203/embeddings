@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+from importlib.metadata import version
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Dict, List, Union
 
@@ -11,9 +12,15 @@ import jieba
 import numpy as np
 from huggingface_hub import snapshot_download
 from huggingface_hub.errors import HFValidationError
-from huggingface_hub.utils._errors import RepositoryNotFoundError
 
 from ._base import EmbeddingModel, EmbeddingResult, EmbeddingResults
+
+huggingface_hub_version = version("huggingface_hub")
+huggingface_hub_version = [int(v) for v in huggingface_hub_version.split(".")]
+if huggingface_hub_version[1] <= 24 and huggingface_hub_version[2] <= 7:
+    from huggingface_hub.utils._errors import RepositoryNotFoundError
+else:
+    from huggingface_hub.errors import RepositoryNotFoundError
 
 logger = logging.getLogger(
     __name__,
